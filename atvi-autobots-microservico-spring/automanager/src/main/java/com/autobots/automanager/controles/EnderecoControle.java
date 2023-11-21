@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,9 +14,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.autobots.automanager.entidades.Cliente;
 import com.autobots.automanager.entidades.Endereco;
 import com.autobots.automanager.modelo.EnderecoAtualizador;
 import com.autobots.automanager.modelo.EnderecoSelecionador;
+import com.autobots.automanager.repositorios.ClienteRepositorio;
 import com.autobots.automanager.repositorios.EnderecoRepositorio;
 
 @RestController
@@ -25,6 +28,8 @@ public class EnderecoControle {
 	private EnderecoRepositorio repositorio;
 	@Autowired
 	private EnderecoSelecionador selecionador;
+	@Autowired
+    private ClienteRepositorio clienteRepositorio;
 	
     public Endereco obterEnderecoPorId(Long id) {
         Optional<Endereco> enderecoOpcional = repositorio.findById(id);
@@ -48,9 +53,26 @@ public class EnderecoControle {
 		return enderecos;
 	}
 
-	@PostMapping("/cadastro")
-	public void cadastrarEndereco(@RequestBody Endereco endereco) {
-		repositorio.save(endereco);
+	@PostMapping("/cadastro/{idCliente}")
+	public ResponseEntity<String> cadastrarEndereco(@RequestBody Endereco endereco, @PathVariable Long idCliente) {
+	    Optional<Cliente> clienteOptional = clienteRepositorio.findById(idCliente);
+
+	    if (clienteOptional.isPresent()) {
+	        Cliente cliente = clienteOptional.get();
+
+	        // Verifica se o cliente já possui um endereço
+	        if (cliente.getEndereco() != null) {
+	            return ResponseEntity.badRequest().body("Já existe um endereço cadastrado para este cliente.");
+	        }
+
+	        // Associa o endereço ao cliente e salva
+	        cliente.setEndereco(endereco);
+	        clienteRepositorio.save(cliente);
+
+	        return ResponseEntity.ok("Endereço cadastrado com sucesso.");
+	    } else {
+	        return ResponseEntity.notFound().build();
+	    }
 	}
 
 	@PutMapping("/atualizar")
@@ -63,8 +85,10 @@ public class EnderecoControle {
 
 	@DeleteMapping("/excluir")
 	public void excluirTelefone(@RequestBody Endereco exclusao) {
-		Endereco endereco = repositorio.getById(exclusao.getId());
-		repositorio.delete(endereco);
+	    Cliente cliente = clienteRepositorio.findByEnderecoId(exclusao.getId()); // Supondo que você tenha um método findByEnderecoId no repositorioCliente
+	    cliente.setEndereco(null);
+	    clienteRepositorio.save(cliente);
+	    repositorio.delete(exclusao);
 	}
 
 }
