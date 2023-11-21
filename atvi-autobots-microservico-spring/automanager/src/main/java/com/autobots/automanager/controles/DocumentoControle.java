@@ -90,17 +90,38 @@ public class DocumentoControle {
         return ResponseEntity.ok("Documento cadastrado com sucesso.");
     }
 
-	@PutMapping("/atualizar")
-	public void atualizarDocumento(@RequestBody Documento atualizacao) {
-		Documento documento = repositorio.getById(atualizacao.getId());
-		DocumentoAtualizador atualizador = new DocumentoAtualizador();
-		atualizador.atualizar(documento, atualizacao);
-		repositorio.save(documento);
-	}
+    @PutMapping("/atualizar")
+    public ResponseEntity<?> atualizarDocumento(@RequestBody Documento atualizacao) {
+        // Verificar se já existe um documento com o novo número
+        Documento documentoExistente = repositorio.findByNumero(atualizacao.getNumero());
 
-	@DeleteMapping("/excluir")
-	public void excluirDocumento(@RequestBody Documento exclusao) {
-		Documento documento = repositorio.getById(exclusao.getId());
-		repositorio.delete(documento);
-	}
+        if (documentoExistente != null && !documentoExistente.getId().equals(atualizacao.getId())) {
+            // Já existe um documento com o mesmo número, não atualizar
+            return ResponseEntity.badRequest().body("Já existe um documento com o mesmo número. Não é possível atualizar.");
+        }
+
+        // Continuar com a atualização se não houver conflito de números
+        Documento documento = repositorio.getById(atualizacao.getId());
+        DocumentoAtualizador atualizador = new DocumentoAtualizador();
+        atualizador.atualizar(documento, atualizacao);
+        repositorio.save(documento);
+
+        // Retornar uma resposta de sucesso, por exemplo, HTTP 200 OK
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/excluir")
+    public void excluirDocumento(@RequestBody Documento exclusao) {
+        // Buscar o documento a ser excluído
+        Documento documento = repositorio.getById(exclusao.getId());
+
+        // Percorrer todos os clientes e remover o documento da lista de documentos
+        for (Cliente cliente : repositorioClientes.findAll()) {
+            List<Documento> documentosDoCliente = cliente.getDocumentos();
+            documentosDoCliente.removeIf(doc -> doc.getId().equals(documento.getId()));
+        }
+
+        // Excluir o documento
+        repositorio.delete(documento);
+    }
 }
