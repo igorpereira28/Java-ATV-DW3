@@ -1,6 +1,7 @@
 package com.autobots.automanager.controles;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -24,6 +25,16 @@ public class ClienteControle {
 	private ClienteRepositorio repositorio;
 	@Autowired
 	private ClienteSelecionador selecionador;
+	
+    public Cliente obterClientePorId(Long id) {
+        Optional<Cliente> clienteOpcional = repositorio.findById(id);
+        if (clienteOpcional.isPresent()) {
+            return clienteOpcional.get();
+        } else {
+            // Se o projeto não for encontrado, retorne null ou uma mensagem de erro
+            return null; // Ou retorne uma mensagem de erro como uma String
+        }
+    }
 
 	@GetMapping("/cliente/{id}")
 	public Cliente obterCliente(@PathVariable long id) {

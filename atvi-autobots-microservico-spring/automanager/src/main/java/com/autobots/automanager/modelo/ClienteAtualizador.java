@@ -12,8 +12,8 @@ public class ClienteAtualizador {
 		if (!verificador.verificar(atualizacao.getNome())) {
 			cliente.setNome(atualizacao.getNome());
 		}
-		if (!verificador.verificar(atualizacao.getNomeSocial())) {
-			cliente.setNomeSocial(atualizacao.getNomeSocial());
+		if (!verificador.verificar(atualizacao.getSobrenome())) {
+			cliente.setSobrenome(atualizacao.getSobrenome());
 		}
 		if (!(atualizacao.getDataCadastro() == null)) {
 			cliente.setDataCadastro(atualizacao.getDataCadastro());
