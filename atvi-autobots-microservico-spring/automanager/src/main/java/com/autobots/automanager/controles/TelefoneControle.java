@@ -58,46 +58,77 @@ public class TelefoneControle {
         }
     }
 	
-	@PostMapping("/cadastro/{idCliente}")
-	public ResponseEntity<String> cadastrarTelefone(@RequestBody Telefone telefone, @PathVariable long idCliente) {
+    @PostMapping("/cadastro/{idCliente}")
+    public ResponseEntity<String> cadastrarTelefone(@RequestBody Telefone telefone, @PathVariable long idCliente) {
 
-	    // Obtém o cliente associado ao ID fornecido
-	    Optional<Cliente> clienteOptional = repositorioClientes.findById(idCliente);
+        // Obtém o cliente associado ao ID fornecido
+        Optional<Cliente> clienteOptional = repositorioClientes.findById(idCliente);
 
-	    // Verifica se o cliente existe
-	    if (!clienteOptional.isPresent()) {
-	        return ResponseEntity.badRequest().body("Cliente não encontrado.");
-	    }
+        // Verifica se o cliente existe
+        if (!clienteOptional.isPresent()) {
+            return ResponseEntity.badRequest().body("Cliente não encontrado.");
+        }
 
-	    Cliente cliente = clienteOptional.get();
+        Cliente cliente = clienteOptional.get();
 
-	    // Cria um novo telefone
-	    Telefone novoTelefone = new Telefone();
-	    novoTelefone.setDdd(telefone.getDdd());
-	    novoTelefone.setNumero(telefone.getNumero());
+        // Concatena DDD e número para a comparação
+        String numeroCompleto = telefone.getDdd() + telefone.getNumero();
 
-	    // Salva o telefone no repositório
-	    Telefone telefoneSalvo = repositorio.save(novoTelefone);
+        if (cliente.getTelefones().stream().anyMatch(
+                tel -> (tel.getDdd() + tel.getNumero()).equals(numeroCompleto)
+        )) {
+            return ResponseEntity.badRequest().body("Telefone já cadastrado.");
+        }
 
-	    // Adiciona o telefone ao cliente e salva o cliente
-	    cliente.getTelefones().add(telefoneSalvo);
-	    repositorioClientes.save(cliente);
+        // Cria um novo telefone
+        Telefone novoTelefone = new Telefone();
+        novoTelefone.setDdd(telefone.getDdd());
+        novoTelefone.setNumero(telefone.getNumero());
 
-	    return ResponseEntity.ok("Telefone cadastrado com sucesso.");
-	}
+        // Salva o telefone no repositório
+        Telefone telefoneSalvo = repositorio.save(novoTelefone);
 
-	@PutMapping("/atualizar")
-	public void atualizarTelefone(@RequestBody Telefone atualizacao) {
-		Telefone telefone = repositorio.getById(atualizacao.getId());
-		TelefoneAtualizador atualizador = new TelefoneAtualizador();
-		atualizador.atualizar(telefone, atualizacao);
-		repositorio.save(telefone);
-	}
+        // Adiciona o telefone ao cliente e salva o cliente
+        cliente.getTelefones().add(telefoneSalvo);
+        repositorioClientes.save(cliente);
 
-	@DeleteMapping("/excluir")
-	public void excluirTelefone(@RequestBody Telefone exclusao) {
-		Telefone telefone = repositorio.getById(exclusao.getId());
-		repositorio.delete(telefone);
-	}
+        return ResponseEntity.ok("Telefone cadastrado com sucesso.");
+    }
+
+    @PutMapping("/atualizar")
+    public ResponseEntity<?> atualizarTelefone(@RequestBody Telefone atualizacao) {
+        // Verificar se já existe um telefone com o mesmo número e DDD
+        Telefone telefoneExistente = repositorio.findByNumeroAndDdd(
+                atualizacao.getNumero(), atualizacao.getDdd());
+
+        if (telefoneExistente != null && !telefoneExistente.getId().equals(atualizacao.getId())) {
+            // Já existe um telefone com a mesma combinação de DDD e número, não atualizar
+            return ResponseEntity.badRequest().body("Este telefone já está cadastrado");
+        }
+
+        // Continuar com a atualização se não houver conflito de DDD e número
+        Telefone telefone = repositorio.getById(atualizacao.getId());
+        TelefoneAtualizador atualizador = new TelefoneAtualizador();
+        atualizador.atualizar(telefone, atualizacao);
+        repositorio.save(telefone);
+
+        // Retornar uma resposta de sucesso, por exemplo, HTTP 200 OK
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/excluir")
+    public void excluirTelefone(@RequestBody Telefone exclusao) {
+        // Buscar o documento a ser excluído
+        Telefone telefone = repositorio.getById(exclusao.getId());
+
+        // Percorrer todos os clientes e remover o documento da lista de documentos
+        for (Cliente cliente : repositorioClientes.findAll()) {
+            List<Telefone> telefonesDoCliente = cliente.getTelefones();
+            telefonesDoCliente.removeIf(doc -> doc.getId().equals(telefone.getId()));
+        }
+
+        // Excluir o documento
+        repositorio.delete(telefone);
+    }
 
 }
