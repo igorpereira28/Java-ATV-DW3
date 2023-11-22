@@ -6,6 +6,7 @@ import java.util.Optional;
 import javax.swing.text.Document;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,8 +20,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.autobots.automanager.entidades.Cliente;
 import com.autobots.automanager.entidades.Documento;
-import com.autobots.automanager.modelo.DocumentoAtualizador;
-import com.autobots.automanager.modelo.DocumentoSelecionador;
+import com.autobots.automanager.modelos.ClienteAtualizador;
+import com.autobots.automanager.modelos.DocumentoAtualizador;
+import com.autobots.automanager.modelos.DocumentoSelecionador;
 import com.autobots.automanager.repositorios.ClienteRepositorio;
 import com.autobots.automanager.repositorios.DocumentoRepositorio;
 
@@ -37,24 +39,33 @@ public class DocumentoControle {
     private ClienteRepositorio repositorioClientes;
 
     @GetMapping
-    public List<Documento> obterTodosDocumentos() {
-        return repositorio.findAll();
+    public ResponseEntity<List<Documento>> obterTodosDocumentos() {
+		List<Documento> documentos = repositorio.findAll();
+		if (documentos.isEmpty()) {
+			ResponseEntity<List<Documento>> resposta = new ResponseEntity<>(HttpStatus.NOT_FOUND);
+			return resposta;
+		} else {
+			ResponseEntity<List<Documento>> resposta = new ResponseEntity<>(documentos, HttpStatus.FOUND);
+			return resposta;
+		}
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Documento> obterDocumentoPorId(@PathVariable long id) {
-        Optional<Documento> documentoOptional = repositorio.findById(id);
-
-        if (documentoOptional.isPresent()) {
-            return ResponseEntity.ok(documentoOptional.get());
-        } else {
-            return ResponseEntity.notFound().build();
-        }
+		List<Documento> documentos = repositorio.findAll();
+		Documento documento = selecionador.selecionar(documentos, id);
+		if (documento == null) {
+			ResponseEntity<Documento> resposta = new ResponseEntity<>(HttpStatus.NOT_FOUND);
+			return resposta;
+		} else {
+			ResponseEntity<Documento> resposta = new ResponseEntity<Documento>(documento, HttpStatus.FOUND);
+			return resposta;
+		}
     }
 	
     @PostMapping("/cadastro/{idCliente}")
-    public ResponseEntity<String> cadastrarDocumento(@RequestBody Documento documento, @PathVariable long idCliente) {
-
+    public ResponseEntity<?> cadastrarDocumento(@RequestBody Documento documento, @PathVariable long idCliente) {
+    	HttpStatus status = HttpStatus.CONFLICT;
         // Obtém o cliente associado ao ID fornecido
         Optional<Cliente> clienteOptional = repositorioClientes.findById(idCliente);
 
@@ -85,14 +96,18 @@ public class DocumentoControle {
 
         // Adiciona o documento ao cliente e salva o cliente
         cliente.getDocumentos().add(documentoSalvo);
-        repositorioClientes.save(cliente);
+        if (documento.getId() == null) {
+        	repositorioClientes.save(cliente);
+        	status = HttpStatus.CREATED;
+        }
 
-        return ResponseEntity.ok("Documento cadastrado com sucesso.");
+        return new ResponseEntity<>(status);
     }
 
     @PutMapping("/atualizar")
     public ResponseEntity<?> atualizarDocumento(@RequestBody Documento atualizacao) {
-        // Verificar se já existe um documento com o novo número
+    	HttpStatus status = HttpStatus.CONFLICT;
+    	// Verificar se já existe um documento com o novo número
         Documento documentoExistente = repositorio.findByNumero(atualizacao.getNumero());
 
         if (documentoExistente != null && !documentoExistente.getId().equals(atualizacao.getId())) {
@@ -102,26 +117,35 @@ public class DocumentoControle {
 
         // Continuar com a atualização se não houver conflito de números
         Documento documento = repositorio.getById(atualizacao.getId());
-        DocumentoAtualizador atualizador = new DocumentoAtualizador();
-        atualizador.atualizar(documento, atualizacao);
-        repositorio.save(documento);
 
-        // Retornar uma resposta de sucesso, por exemplo, HTTP 200 OK
-        return ResponseEntity.ok().build();
+        if (documento != null) {
+            DocumentoAtualizador atualizador = new DocumentoAtualizador();
+            atualizador.atualizar(documento, atualizacao);
+            repositorio.save(documento);
+			status = HttpStatus.OK;
+		} else {
+			status = HttpStatus.BAD_REQUEST;
+		}
+		return new ResponseEntity<>(status);
     }
 
     @DeleteMapping("/excluir")
-    public void excluirDocumento(@RequestBody Documento exclusao) {
+    public ResponseEntity<?> excluirDocumento(@RequestBody Documento exclusao) {
+    	HttpStatus status = HttpStatus.BAD_REQUEST;
         // Buscar o documento a ser excluído
         Documento documento = repositorio.getById(exclusao.getId());
 
-        // Percorrer todos os clientes e remover o documento da lista de documentos
-        for (Cliente cliente : repositorioClientes.findAll()) {
-            List<Documento> documentosDoCliente = cliente.getDocumentos();
-            documentosDoCliente.removeIf(doc -> doc.getId().equals(documento.getId()));
-        }
+        if (documento != null) {
+        	// Percorrer todos os clientes e remover o documento da lista de documentos
+            for (Cliente cliente : repositorioClientes.findAll()) {
+                List<Documento> documentosDoCliente = cliente.getDocumentos();
+                documentosDoCliente.removeIf(doc -> doc.getId().equals(documento.getId()));
+            }
 
-        // Excluir o documento
-        repositorio.delete(documento);
+            // Excluir o documento
+            repositorio.delete(documento);
+			status = HttpStatus.OK;
+		}
+		return new ResponseEntity<>(status);
     }
 }

@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,9 +16,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.autobots.automanager.entidades.Cliente;
+import com.autobots.automanager.entidades.Documento;
 import com.autobots.automanager.entidades.Endereco;
-import com.autobots.automanager.modelo.EnderecoAtualizador;
-import com.autobots.automanager.modelo.EnderecoSelecionador;
+import com.autobots.automanager.modelos.DocumentoAtualizador;
+import com.autobots.automanager.modelos.EnderecoAtualizador;
+import com.autobots.automanager.modelos.EnderecoSelecionador;
 import com.autobots.automanager.repositorios.ClienteRepositorio;
 import com.autobots.automanager.repositorios.EnderecoRepositorio;
 
@@ -42,20 +45,34 @@ public class EnderecoControle {
     }
 
 	@GetMapping("/{id}")
-	public Endereco obterEndereco(@PathVariable long id) {
+	public ResponseEntity<Endereco> obterEnderecoPorId(@PathVariable long id) {
 		List<Endereco> enderecos = repositorio.findAll();
-		return selecionador.selecionar(enderecos, id);
+		Endereco endereco = selecionador.selecionar(enderecos, id);
+		if (endereco == null) {
+			ResponseEntity<Endereco> resposta = new ResponseEntity<>(HttpStatus.NOT_FOUND);
+			return resposta;
+		} else {
+			ResponseEntity<Endereco> resposta = new ResponseEntity<Endereco>(endereco, HttpStatus.FOUND);
+			return resposta;
+		}
 	}
 
 	@GetMapping
-	public List<Endereco> obterEnderecos() {
+	public ResponseEntity<List<Endereco>> obterEnderecos() {
 		List<Endereco> enderecos = repositorio.findAll();
-		return enderecos;
+		if (enderecos.isEmpty()) {
+			ResponseEntity<List<Endereco>> resposta = new ResponseEntity<>(HttpStatus.NOT_FOUND);
+			return resposta;
+		} else {
+			ResponseEntity<List<Endereco>> resposta = new ResponseEntity<>(enderecos, HttpStatus.FOUND);
+			return resposta;
+		}
 	}
 
 	@PostMapping("/cadastro/{idCliente}")
-	public ResponseEntity<String> cadastrarEndereco(@RequestBody Endereco endereco, @PathVariable Long idCliente) {
-	    Optional<Cliente> clienteOptional = clienteRepositorio.findById(idCliente);
+	public ResponseEntity<?> cadastrarEndereco(@RequestBody Endereco endereco, @PathVariable Long idCliente) {
+		HttpStatus status = HttpStatus.CONFLICT;
+		Optional<Cliente> clienteOptional = clienteRepositorio.findById(idCliente);
 
 	    if (clienteOptional.isPresent()) {
 	        Cliente cliente = clienteOptional.get();
@@ -67,28 +84,45 @@ public class EnderecoControle {
 
 	        // Associa o endereço ao cliente e salva
 	        cliente.setEndereco(endereco);
-	        clienteRepositorio.save(cliente);
+	        
 
-	        return ResponseEntity.ok("Endereço cadastrado com sucesso.");
+	        if (endereco.getId() == null) {
+	        	clienteRepositorio.save(cliente);
+	        	status = HttpStatus.CREATED;
+	        }
+
+	        return new ResponseEntity<>(status);
 	    } else {
 	        return ResponseEntity.notFound().build();
 	    }
 	}
 
 	@PutMapping("/atualizar")
-	public void atualizarEndereco(@RequestBody Endereco atualizacao) {
+	public ResponseEntity<?> atualizarEndereco(@RequestBody Endereco atualizacao) {
+		HttpStatus status = HttpStatus.CONFLICT;
 		Endereco endereco = repositorio.getById(atualizacao.getId());
-		EnderecoAtualizador atualizador = new EnderecoAtualizador();
-		atualizador.atualizar(endereco, atualizacao);
-		repositorio.save(endereco);
+		if (endereco != null) {
+			EnderecoAtualizador atualizador = new EnderecoAtualizador();
+			atualizador.atualizar(endereco, atualizacao);
+			repositorio.save(endereco);
+			status = HttpStatus.OK;
+		} else {
+			status = HttpStatus.BAD_REQUEST;
+		}
+		return new ResponseEntity<>(status);
 	}
 
 	@DeleteMapping("/excluir")
-	public void excluirTelefone(@RequestBody Endereco exclusao) {
-	    Cliente cliente = clienteRepositorio.findByEnderecoId(exclusao.getId()); // Supondo que você tenha um método findByEnderecoId no repositorioCliente
-	    cliente.setEndereco(null);
-	    clienteRepositorio.save(cliente);
-	    repositorio.delete(exclusao);
+	public ResponseEntity<?> excluirTelefone(@RequestBody Endereco exclusao) {
+		HttpStatus status = HttpStatus.BAD_REQUEST;
+		Cliente cliente = clienteRepositorio.findByEnderecoId(exclusao.getId()); // Supondo que você tenha um método findByEnderecoId no repositorioCliente
+	    if (cliente != null) {
+		    cliente.setEndereco(null);
+		    clienteRepositorio.save(cliente);
+		    repositorio.delete(exclusao);
+			status = HttpStatus.OK;
+		}
+		return new ResponseEntity<>(status);
 	}
 
 }
