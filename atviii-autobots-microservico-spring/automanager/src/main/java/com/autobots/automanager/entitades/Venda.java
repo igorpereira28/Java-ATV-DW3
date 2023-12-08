@@ -1,7 +1,9 @@
 package com.autobots.automanager.entitades;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.persistence.CascadeType;
@@ -14,6 +16,9 @@ import javax.persistence.Id;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
+
+import org.springframework.hateoas.Link;
+import javax.persistence.Transient;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -39,4 +44,13 @@ public class Venda {
 	private Set<Servico> servicos = new HashSet<>();
 	@OneToOne(fetch = FetchType.EAGER, cascade = { CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH })
 	private Veiculo veiculo;
+	
+	@Transient
+    private List<Link> links = new ArrayList<>();
+
+    public void addLinks(Link... newLinks) {
+        for (Link link : newLinks) {
+            links.add(link);
+        }
+    }
 }
