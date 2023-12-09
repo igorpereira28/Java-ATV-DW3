@@ -91,7 +91,7 @@ public class ClienteControle {
 		} else {
 			status = HttpStatus.BAD_REQUEST;
 		}
-		return new ResponseEntity<>(status);
+		return new ResponseEntity<>(HttpStatus.OK);
 	}
 
 	@DeleteMapping("/excluir")
@@ -102,6 +102,6 @@ public class ClienteControle {
 			repositorio.delete(cliente);
 			status = HttpStatus.OK;
 		}
-		return new ResponseEntity<>(status);
+		return new ResponseEntity<>(HttpStatus.OK);
 	}
 }

@@ -113,7 +113,7 @@ public class EnderecoControle {
 	}
 
 	@DeleteMapping("/excluir")
-	public ResponseEntity<?> excluirTelefone(@RequestBody Endereco exclusao) {
+	public ResponseEntity<?> excluirEndereco(@RequestBody Endereco exclusao) {
 		HttpStatus status = HttpStatus.BAD_REQUEST;
 		Cliente cliente = clienteRepositorio.findByEnderecoId(exclusao.getId()); // Supondo que você tenha um método findByEnderecoId no repositorioCliente
 	    if (cliente != null) {
