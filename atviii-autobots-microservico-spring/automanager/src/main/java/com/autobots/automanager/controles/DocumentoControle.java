@@ -1,5 +1,6 @@
 package com.autobots.automanager.controles;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -72,25 +73,21 @@ public class DocumentoControle {
     @PostMapping("/cadastro/{idUsuario}")
     public ResponseEntity<?> cadastrarDocumento(@RequestBody Documento documento, @PathVariable long idUsuario) {
     	HttpStatus status = HttpStatus.CONFLICT;
-        // Obtém o usuario associado ao ID fornecido
         Optional<Usuario> usuarioOptional = repositorioUsuarios.findById(idUsuario);
 
-        // Verifica se o usuario existe
         if (!usuarioOptional.isPresent()) {
             return ResponseEntity.badRequest().body("Usuario não encontrado.");
         }
 
         Usuario usuario = usuarioOptional.get();
 
-        // Cria um novo documento
         Documento novoDocumento = new Documento();
         novoDocumento.setTipo(documento.getTipo());
         novoDocumento.setNumero(documento.getNumero());
+        novoDocumento.setDataEmissao(new Date());
 
-        // Salva o documento no repositório
         Documento documentoSalvo = repositorio.save(novoDocumento);
 
-        // Adiciona o documento ao usuario e salva o usuario
         usuario.getDocumentos().add(documentoSalvo);
         if (documento.getId() == null) {
         	repositorioUsuarios.save(usuario);
@@ -103,15 +100,12 @@ public class DocumentoControle {
     @PutMapping("/atualizar")
     public ResponseEntity<?> atualizarDocumento(@RequestBody Documento atualizacao) {
     	HttpStatus status = HttpStatus.CONFLICT;
-    	// Verificar se já existe um documento com o novo número
         Documento documentoExistente = repositorio.findByNumero(atualizacao.getNumero());
 
         if (documentoExistente != null && !documentoExistente.getId().equals(atualizacao.getId())) {
-            // Já existe um documento com o mesmo número, não atualizar
             return ResponseEntity.badRequest().body("Já existe um documento com o mesmo número. Não é possível atualizar.");
         }
 
-        // Continuar com a atualização se não houver conflito de números
         Documento documento = repositorio.getById(atualizacao.getId());
 
         if (documento != null) {

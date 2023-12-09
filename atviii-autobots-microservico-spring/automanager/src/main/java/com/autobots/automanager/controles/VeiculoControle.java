@@ -65,13 +65,12 @@ public class VeiculoControle {
 	
 	@PostMapping("/cadastro")
 	public ResponseEntity<?> cadastrarVeiculo(@RequestBody Veiculo veiculo) {
-		HttpStatus status = HttpStatus.CONFLICT;
-		if (veiculo.getId() == null) {
-			repositorio.save(veiculo);
-			status = HttpStatus.CREATED;
-		}
-		return new ResponseEntity<>(status);
-
+	    HttpStatus status = HttpStatus.CONFLICT;
+	    if (veiculo.getId() == null) {
+	        repositorio.save(veiculo);
+	        status = HttpStatus.CREATED;
+	    }
+	    return new ResponseEntity<>("Veiculo cadastrado com sucesso.", status);
 	}
 	
 	@PutMapping("/atualizar")

@@ -24,7 +24,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 @Data
-@EqualsAndHashCode(exclude = { "proprietario", "vendas" })
+@EqualsAndHashCode(callSuper = false, exclude = { "proprietario", "vendas" })
 @Entity
 public class Veiculo {
 	@Id

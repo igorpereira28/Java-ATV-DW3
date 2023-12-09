@@ -72,12 +72,10 @@ public class EnderecoControle {
 	    if (usuarioOptional.isPresent()) {
 	        Usuario usuario = usuarioOptional.get();
 
-	        // Verifica se o usuario já possui um endereço
 	        if (usuario.getEndereco() != null) {
 	            return ResponseEntity.badRequest().body("Já existe um endereço cadastrado para este usuario.");
 	        }
 
-	        // Associa o endereço ao usuario e salva
 	        usuario.setEndereco(endereco);
 	        
 

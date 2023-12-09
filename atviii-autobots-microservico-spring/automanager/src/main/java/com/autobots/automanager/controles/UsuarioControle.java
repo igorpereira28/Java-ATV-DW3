@@ -1,6 +1,7 @@
 package com.autobots.automanager.controles;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -35,66 +36,62 @@ public class UsuarioControle {
 	private AdicionadorLinkUsuario adicionadorLink;
 	
 	@GetMapping
-	public ResponseEntity<List<Usuario>> obterUsuarios(){
-		List<Usuario> usuarios = repositorio.findAll();
-		if (usuarios.isEmpty()) {
-			ResponseEntity<List<Usuario>> resposta = new ResponseEntity<>(HttpStatus.NOT_FOUND);
-			return resposta;
-		} else {
-			adicionadorLink.adicionarLink(usuarios);
-			ResponseEntity<List<Usuario>> resposta = new ResponseEntity<>(usuarios, HttpStatus.FOUND);
-			return resposta;
-		}
+	public ResponseEntity<List<Usuario>> obterUsuarios() {
+	    List<Usuario> usuarios = repositorio.findAll();
+	    
+	    if (usuarios.isEmpty()) {
+	        return ResponseEntity.notFound().build();
+	    } else {
+	        adicionadorLink.adicionarLink(usuarios);
+	        return ResponseEntity.ok(usuarios);
+	    }
 	}
 	
 	@GetMapping("/{id}")
 	public ResponseEntity<Usuario> obterUsuario(@PathVariable long id) {
-		List<Usuario> usuarios = repositorio.findAll();
-		Usuario usuario = selecionador.selecionar(usuarios, id);
-		if (usuario == null) {
-			ResponseEntity<Usuario> resposta = new ResponseEntity<>(HttpStatus.NOT_FOUND);
-			return resposta;
-		} else {
-			adicionadorLink.adicionarLink(usuario);
-			ResponseEntity<Usuario> resposta = new ResponseEntity<Usuario>(usuario, HttpStatus.FOUND);
-			return resposta;
-		}
+	    Optional<Usuario> usuarioOptional = repositorio.findById(id);
+	    
+	    if (usuarioOptional.isPresent()) {
+	        Usuario usuario = usuarioOptional.get();
+	        adicionadorLink.adicionarLink(usuario);
+	        return ResponseEntity.ok(usuario);
+	    } else {
+	        return ResponseEntity.notFound().build();
+	    }
 	}
 	
 	@PostMapping("/cadastro")
 	public ResponseEntity<?> cadastrarUsuario(@RequestBody Usuario usuario) {
-		HttpStatus status = HttpStatus.CONFLICT;
-		if (usuario.getId() == null) {
-			repositorio.save(usuario);
-			status = HttpStatus.CREATED;
-		}
-		return new ResponseEntity<>(status);
+	    if (usuario.getId() != null) {
+	        return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+	    }
 
+	    repositorio.save(usuario);
+	    return new ResponseEntity<>(HttpStatus.CREATED);
 	}
 	
 	@PutMapping("/atualizar")
 	public ResponseEntity<?> atualizarUsuario(@RequestBody Usuario atualizacao) {
-		HttpStatus status = HttpStatus.CONFLICT;
-		Usuario usuario = repositorio.getById(atualizacao.getId());
-		if (usuario != null) {
-			UsuarioAtualizador atualizador = new UsuarioAtualizador();
-			atualizador.atualizar(usuario, atualizacao);
-			repositorio.save(usuario);
-			status = HttpStatus.OK;
-		} else {
-			status = HttpStatus.BAD_REQUEST;
-		}
-		return new ResponseEntity<>(status);
+	    Usuario usuario = repositorio.findById(atualizacao.getId()).orElse(null);
+	    if (usuario == null) {
+	        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+	    }
+
+	    UsuarioAtualizador atualizador = new UsuarioAtualizador();
+	    atualizador.atualizar(usuario, atualizacao);
+	    repositorio.save(usuario);
+
+	    return new ResponseEntity<>(HttpStatus.OK);
 	}
 
 	@DeleteMapping("/excluir")
 	public ResponseEntity<?> excluirUsuario(@RequestBody Usuario exclusao) {
-		HttpStatus status = HttpStatus.BAD_REQUEST;
-		Usuario usuario = repositorio.getById(exclusao.getId());
-		if (usuario != null) {
-			repositorio.delete(usuario);
-			status = HttpStatus.OK;
-		}
-		return new ResponseEntity<>(status);
+	    Usuario usuario = repositorio.findById(exclusao.getId()).orElse(null);
+	    if (usuario == null) {
+	        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+	    }
+
+	    repositorio.delete(usuario);
+	    return new ResponseEntity<>(HttpStatus.OK);
 	}
 }

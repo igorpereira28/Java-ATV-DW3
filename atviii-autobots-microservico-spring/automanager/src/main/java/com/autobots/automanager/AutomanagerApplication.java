@@ -3,13 +3,12 @@ package com.autobots.automanager;
 import java.util.Date;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.ApplicationArguments;
-import org.springframework.http.ResponseEntity;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.autobots.automanager.controles.UsuarioControle;
 import com.autobots.automanager.entitades.CredencialUsuarioSenha;
@@ -33,24 +32,37 @@ import com.autobots.automanager.repositorios.RepositorioUsuario;
 public class AutomanagerApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(AutomanagerApplication.class, args);
-	}
+        SpringApplication.run(AutomanagerApplication.class, args);
+    }
+
+    @Autowired
+    public RepositorioEmpresa repositorioEmpresa;
+
+    @Autowired
+    public RepositorioUsuario repositorio;
+
+    @Autowired
+    public UsuarioControle usuarioControle;
 	
     @Component
     public static class Runner implements ApplicationRunner {
 
-    	@Autowired
-    	private RepositorioEmpresa repositorioEmpresa;
-    	
         @Autowired
-        public RepositorioUsuario repositorio;
+        private RepositorioEmpresa repositorioEmpresa;
 
         @Autowired
-        public UsuarioControle usuarioControle;
+        private RepositorioUsuario repositorio;
 
+        @Autowired
+        private UsuarioControle usuarioControle;
 
         @Override
+        @Transactional
         public void run(ApplicationArguments args) throws Exception {
+        	
+        	if (!repositorio.findAll().isEmpty()) {
+                return;
+            }
 	
 			Empresa empresa = new Empresa();
 			empresa.setRazaoSocial("Car service toyota ltda");
@@ -116,163 +128,6 @@ public class AutomanagerApplication {
 			credencialFuncionario.setUltimoAcesso(new Date());
 	
 			funcionario.getCredenciais().add(credencialFuncionario);
-	
-			Usuario fornecedor = new Usuario();
-			fornecedor.setNome("Componentes varejo de partes automotivas ltda");
-			fornecedor.setNomeSocial("Loja do carro, vendas de componentes automotivos");
-			fornecedor.getPerfis().add(PerfilUsuario.FORNECEDOR);
-	
-			Email emailFornecedor = new Email();
-			emailFornecedor.setEndereco("f@f.com");
-	
-			fornecedor.getEmails().add(emailFornecedor);
-	
-			CredencialUsuarioSenha credencialFornecedor = new CredencialUsuarioSenha();
-			credencialFornecedor.setInativo(false);
-			credencialFornecedor.setNomeUsuario("dompedrofornecedor");
-			credencialFornecedor.setSenha("123456");
-			credencialFornecedor.setCriacao(new Date());
-			credencialFornecedor.setUltimoAcesso(new Date());
-	
-			fornecedor.getCredenciais().add(credencialFornecedor);
-	
-			Documento cnpj = new Documento();
-			cnpj.setDataEmissao(new Date());
-			cnpj.setNumero("00014556000100");
-			cnpj.setTipo(TipoDocumento.CNPJ);
-	
-			fornecedor.getDocumentos().add(cnpj);
-	
-			Endereco enderecoFornecedor = new Endereco();
-			enderecoFornecedor.setEstado("Rio de Janeiro");
-			enderecoFornecedor.setCidade("Rio de Janeiro");
-			enderecoFornecedor.setBairro("Centro");
-			enderecoFornecedor.setRua("Av. República do chile");
-			enderecoFornecedor.setNumero("00");
-			enderecoFornecedor.setCodigoPostal("20031-170");
-	
-			fornecedor.setEndereco(enderecoFornecedor);
-	
-			empresa.getUsuarios().add(fornecedor);
-			
-			Mercadoria rodaLigaLeve = new Mercadoria();
-			rodaLigaLeve.setCadastro(new Date());
-			rodaLigaLeve.setFabricao(new Date());
-			rodaLigaLeve.setNome("Roda de liga leva modelo toyota etios");
-			rodaLigaLeve.setValidade(new Date());
-			rodaLigaLeve.setQuantidade(30);
-			rodaLigaLeve.setValor(300.0);
-			rodaLigaLeve.setDescricao("Roda de liga leve original de fábrica da toyta para modelos do tipo hatch");
-	
-			empresa.getMercadorias().add(rodaLigaLeve);
-	
-			fornecedor.getMercadorias().add(rodaLigaLeve);
-	
-			Usuario cliente = new Usuario();
-			cliente.setNome("Pedro Alcântara de Bragança e Bourbon");
-			cliente.setNomeSocial("Dom pedro cliente");
-			cliente.getPerfis().add(PerfilUsuario.CLIENTE);
-	
-			Email emailCliente = new Email();
-			emailCliente.setEndereco("c@c.com");
-	
-			cliente.getEmails().add(emailCliente);
-	
-			Documento cpfCliente = new Documento();
-			cpfCliente.setDataEmissao(new Date());
-			cpfCliente.setNumero("12584698533");
-			cpfCliente.setTipo(TipoDocumento.CPF);
-	
-			cliente.getDocumentos().add(cpfCliente);
-	
-			CredencialUsuarioSenha credencialCliente = new CredencialUsuarioSenha();
-			credencialCliente.setInativo(false);
-			credencialCliente.setNomeUsuario("dompedrocliente");
-			credencialCliente.setSenha("123456");
-			credencialCliente.setCriacao(new Date());
-			credencialCliente.setUltimoAcesso(new Date());
-	
-			cliente.getCredenciais().add(credencialCliente);
-	
-			Endereco enderecoCliente = new Endereco();
-			enderecoCliente.setEstado("São Paulo");
-			enderecoCliente.setCidade("São José dos Campos");
-			enderecoCliente.setBairro("Centro");
-			enderecoCliente.setRua("Av. Dr. Nelson D'Ávila");
-			enderecoCliente.setNumero("00");
-			enderecoCliente.setCodigoPostal("12245-070");
-	
-			cliente.setEndereco(enderecoCliente);
-			
-			Veiculo veiculo = new Veiculo();
-			veiculo.setPlaca("ABC-0000");
-			veiculo.setModelo("corolla-cross");
-			veiculo.setTipo(TipoVeiculo.SUV);
-			veiculo.setProprietario(cliente);
-			
-			cliente.getVeiculos().add(veiculo);
-			
-			empresa.getUsuarios().add(cliente);
-	
-			Servico trocaRodas = new Servico();
-			trocaRodas.setDescricao("Troca das rodas do carro por novas");
-			trocaRodas.setNome("Troca de rodas");
-			trocaRodas.setValor(50);
-	
-			Servico alinhamento = new Servico();
-			alinhamento.setDescricao("Alinhamento das rodas do carro");
-			alinhamento.setNome("Alinhamento de rodas");
-			alinhamento.setValor(50);
-	
-			empresa.getServicos().add(trocaRodas);
-			empresa.getServicos().add(alinhamento);
-	
-			Venda venda = new Venda();
-			venda.setCadastro(new Date());
-			venda.setCliente(cliente);
-			venda.getMercadorias().add(rodaLigaLeve);
-			venda.setIdentificacao("1234698745");
-			venda.setFuncionario(funcionario);
-			venda.getServicos().add(trocaRodas);
-			venda.getServicos().add(alinhamento);
-			venda.setVeiculo(veiculo);
-			veiculo.getVendas().add(venda);
-	
-			empresa.getVendas().add(venda);
-	
-			repositorioEmpresa.save(empresa);
-			
-			Mercadoria rodaLigaLeve2 = new Mercadoria();
-			rodaLigaLeve2.setCadastro(new Date());
-			rodaLigaLeve2.setFabricao(new Date());
-			rodaLigaLeve2.setNome("Roda de liga leva modelo toyota etios");
-			rodaLigaLeve2.setValidade(new Date());
-			rodaLigaLeve2.setQuantidade(30);
-			rodaLigaLeve2.setValor(300.0);
-			rodaLigaLeve2.setDescricao("Roda de liga leve original de fábrica da toyta para modelos do tipo hatch");
-			
-			Servico alinhamento2 = new Servico();
-			alinhamento2.setDescricao("Alinhamento das rodas do carro");
-			alinhamento2.setNome("Alinhamento de rodas");
-			alinhamento2.setValor(50);
-			
-			Servico balanceamento = new Servico();
-			balanceamento.setDescricao("balanceamento das rodas do carro");
-			balanceamento.setNome("balanceamento de rodas");
-			balanceamento.setValor(30);
-			
-			Venda venda2 = new Venda();
-			venda2.setCadastro(new Date());
-			venda2.setCliente(cliente);
-			venda2.getMercadorias().add(rodaLigaLeve2);
-			venda2.setIdentificacao("1234698749");
-			venda2.setFuncionario(funcionario);
-			venda2.getServicos().add(balanceamento);
-			venda2.getServicos().add(alinhamento2);
-			venda2.setVeiculo(veiculo);
-			veiculo.getVendas().add(venda2);
-	
-			empresa.getVendas().add(venda2);
 			
 			repositorioEmpresa.save(empresa);
 	
